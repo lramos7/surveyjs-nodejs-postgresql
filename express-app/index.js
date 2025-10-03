@@ -4,7 +4,14 @@ const session = require("express-session");
 const PostgresSurveyStorage = require("./db-adapters/postgres");
 const apiBaseAddress = "/api";
 
+const cors = require('cors');
+
 const app = express();
+
+app.use(cors({
+    origin: 'https://forms.cortix.info'
+}));
+
 app.use(
   session({
     secret: "mysecret",
