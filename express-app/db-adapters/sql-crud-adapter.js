@@ -39,18 +39,18 @@ function SqlCrudAdapter (queryExecutorFunction) {
         const valueNames = [];
         const valueIndexes = [];
         keys.forEach((key, index) => {
-        if (object[key] !== undefined) {
-          valueNames.push(key);
-          valueIndexes.push("$" + (index + 1));
-          values.push(object[key]);
+          if (object[key] !== undefined) {
+            valueNames.push(key);
+            valueIndexes.push("$" + (index + 1));
+            values.push(object[key]);
+          }
+        });
+        command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
+      } queryExecutorFunction(command, values, (error, results) => {
+        if (error) {
+          throw error;
         }
-      });
-      command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
-    } queryExecutorFunction(command, values, (error, results) => {
-      if (error) {
-        throw error;
-      }
-    callback(results.rows[0].id);
+        callback(results.rows[0].id);
       });
     }
 
