@@ -26,24 +26,37 @@ function SqlCrudAdapter (queryExecutorFunction) {
     }
   
     function createObject (tableName, object, callback) {
-      const valueNames = [];
-      const valueIndexes = [];
+      const keys = Object.keys(object);
+      let command;
       const values = [];
-      Object.keys(object).forEach((key, index) => {
+
+      if (keys.length === 0) {
+    // Se o objeto for vazio, use a sintaxe DEFAULT VALUES do PostgreSQL
+    // Isso insere uma linha usando os valores padrão das colunas (como o id serial)
+        command = "INSERT INTO " + tableName + " DEFAULT VALUES RETURNING id";
+      } else {
+    // Lógica original para objetos que contêm dados
+        const valueNames = [];
+        const valueIndexes = [];
+        keys.forEach((key, index) => {
         if (object[key] !== undefined) {
           valueNames.push(key);
           valueIndexes.push("$" + (index + 1));
           values.push(object[key]);
         }
       });
-      const command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
-      queryExecutorFunction(command, values, (error, results) => {
-        if (error) {
-          throw error;
-        }
-        callback(results.rows[0].id);
+      command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
+    } queryExecutorFunction(command, values, (error, results) => {
+      if (error) {
+        throw error;
+      }
+    callback(results.rows[0].id);
       });
     }
+
+
+
+
   
     function updateObject (tableName, object, callback) {
       const valueNames = [];
