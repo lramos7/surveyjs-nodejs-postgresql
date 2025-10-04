@@ -26,35 +26,41 @@ function SqlCrudAdapter (queryExecutorFunction) {
     }
   
     function createObject (tableName, object, callback) {
-      const keys = Object.keys(object);
-      let command;
-      const values = [];
-
-      if (keys.length === 0) {
-    // Se o objeto for vazio, use a sintaxe DEFAULT VALUES do PostgreSQL
-    // Isso insere uma linha usando os valores padrão das colunas (como o id serial)
-        command = "INSERT INTO " + tableName + " DEFAULT VALUES RETURNING id";
-      } else {
-    // Lógica original para objetos que contêm dados
-        const valueNames = [];
-        const valueIndexes = [];
-        keys.forEach((key, index) => {
-          if (object[key] !== undefined) {
-            valueNames.push(key);
-            valueIndexes.push("$" + (index + 1));
-            values.push(object[key]);
-          }
-        });
-        command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
-      } queryExecutorFunction(command, values, (error, results) => {
-        if (error) {
-          throw error;
-        }
-        callback(results.rows[0].id);
-      });
+  const valueNames = [];
+  const valueIndexes = [];
+  const values = [];
+  Object.keys(object).forEach((key, index) => {
+    // Apenas adiciona a coluna se o valor não for undefined
+    if (object[key] !== undefined) {
+      valueNames.push(key);
+      valueIndexes.push("$" + (index + 1));
+      values.push(object[key]);
     }
+  });
 
+  // **** NOVA VERIFICAÇÃO CRUCIAL ****
+  // Se, após o loop, nenhuma coluna válida foi encontrada,
+  // use a sintaxe DEFAULT VALUES para evitar o erro.
+  if (valueNames.length === 0) {
+    const command = "INSERT INTO " + tableName + " DEFAULT VALUES RETURNING id";
+    queryExecutorFunction(command, [], (error, results) => { // Passa um array de valores vazio
+      if (error) {
+        throw error;
+      }
+      callback(results.rows[0].id);
+    });
+    return; // Encerra a função aqui para não executar o código abaixo
+  }
 
+  // Lógica original que só roda quando há colunas e valores válidos
+  const command = "INSERT INTO " + tableName + " (" + valueNames.join(", ") + ") VALUES (" + valueIndexes.join(", ") + ") RETURNING id";
+  queryExecutorFunction(command, values, (error, results) => {
+    if (error) {
+      throw error;
+    }
+    callback(results.rows[0].id);
+  });
+}
 
 
   
